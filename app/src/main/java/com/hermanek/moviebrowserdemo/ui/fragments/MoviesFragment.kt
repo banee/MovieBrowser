@@ -2,6 +2,7 @@ package com.hermanek.moviebrowserdemo.ui.fragments
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,8 +32,6 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
     private var layoutManager: RecyclerView.LayoutManager? = null
     private lateinit var recyclerAdapter: MoviesAdapter
     private lateinit var viewModel: MoviesViewModel
-    private lateinit var communicator: Communicator
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,7 +40,6 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
     ): View? {
         binding = FragmentMoviesBinding.inflate(inflater, container, false)
         val view = binding.root
-        communicator = activity as Communicator
 
         initRecyclerView()
 
@@ -49,32 +47,17 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
         val viewModelFactory = MoviesViewModelFactory(repository)
         viewModel = ViewModelProvider(this, viewModelFactory).get(MoviesViewModel::class.java)
 
-        viewModel.changesResponse.observe(viewLifecycleOwner, { response ->
-            response.enqueue(object : retrofit2.Callback<Changes> {
-                override fun onResponse(call: Call<Changes>, response: Response<Changes>) {
-                    if (response.isSuccessful) {
-                        viewModel.listData.value = removeAdultMovies(response.body()?.movies)
-                    } else {
-                        Toast.makeText(
-                            activity,
-                            getText(R.string.error_communication_failure),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-
-                override fun onFailure(call: Call<Changes>, t: Throwable) {
-                    Toast.makeText(
+        viewModel.movieResponse.observe(viewLifecycleOwner, { response ->
+            if(response.movies != null){
+                recyclerAdapter.updateData(response.movies!!)
+            }else{
+                Toast.makeText(
                         activity,
                         getText(R.string.error_communication_failure),
                         Toast.LENGTH_LONG
                     ).show()
-                }
-            })
-        })
-
-        viewModel.listData.observe(viewLifecycleOwner, { data ->
-            recyclerAdapter.updateData(data)
+                Log.e("communication error", "problem occurred while movies download", response.error)
+            }
         })
 
         ArrayAdapter.createFromResource(
@@ -111,9 +94,7 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
         return view
     }
 
-    private fun removeAdultMovies(movies: List<Movie>?): List<Movie>? {
-        return movies?.filter { e -> !e.adult }?.toList()
-    }
+
 
     private fun initRecyclerView() {
         layoutManager = if (resources.getBoolean(R.bool.isTablet)) {
@@ -133,7 +114,7 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
     }
 
     fun openMovieDetail(movieId: Int) {
-        communicator.openMovieDetail(movieId)
+        (activity as Communicator).openMovieDetail(movieId)
     }
 
 }
