@@ -1,20 +1,6 @@
 package com.hermanek.moviebrowserdemo.model
 
 data class Movie(
-//    val adult: Boolean,
-//    var backdrop_path: String?,
-//    val genre_ids: List<Int>,
-//    val id: Int,
-//    val original_language: String?,
-//    var original_title: String?,
-//    val overview: String?,
-//    val popularity: Double,
-//    var poster_path: String?,
-//    val release_date: String?,
-//    var title: String?,
-//    val video: Boolean?,
-//    val vote_average: Double?,
-//    val vote_count: Int?
     val adult: Boolean,
     var backdrop_path: String?,
     val belongs_to_collection: BelongsToCollection?,

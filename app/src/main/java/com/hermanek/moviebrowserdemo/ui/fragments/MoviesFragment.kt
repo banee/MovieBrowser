@@ -48,15 +48,19 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
         viewModel = ViewModelProvider(this, viewModelFactory).get(MoviesViewModel::class.java)
 
         viewModel.movieResponse.observe(viewLifecycleOwner, { response ->
-            if(response.movies != null){
+            if (response.movies != null) {
                 recyclerAdapter.updateData(response.movies!!)
-            }else{
+            } else {
                 Toast.makeText(
-                        activity,
-                        getText(R.string.error_communication_failure),
-                        Toast.LENGTH_LONG
-                    ).show()
-                Log.e("communication error", "problem occurred while movies download", response.error)
+                    activity,
+                    getText(R.string.error_communication_failure),
+                    Toast.LENGTH_LONG
+                ).show()
+                Log.e(
+                    "communication error",
+                    "problem occurred while movies download",
+                    response.error
+                )
             }
         })
 
@@ -93,7 +97,6 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
 
         return view
     }
-
 
 
     private fun initRecyclerView() {

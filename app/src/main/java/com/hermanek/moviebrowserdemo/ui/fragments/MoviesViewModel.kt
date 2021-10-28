@@ -12,9 +12,9 @@ import retrofit2.Response
 
 class MoviesViewModel(private val repository: Repository) : ViewModel() {
 
-    val movieResponse : MutableLiveData<MoviesResponse> =  MutableLiveData()
+    val movieResponse: MutableLiveData<MoviesResponse> = MutableLiveData()
 
-        fun getAllChanges() {
+    fun getAllChanges() {
         repository.getAllChanges().enqueue(object : retrofit2.Callback<Changes> {
             var resp = MoviesResponse()
             override fun onResponse(call: Call<Changes>, response: Response<Changes>) {
@@ -22,7 +22,8 @@ class MoviesViewModel(private val repository: Repository) : ViewModel() {
                     resp.movies = removeAdultMovies(response.body()?.movies)
                     movieResponse.value = resp
                 } else {
-                    resp.error = CommonResponseError("Response not ok; code:" + response.code(), null)
+                    resp.error =
+                        CommonResponseError("Response not ok; code:" + response.code(), null)
                 }
             }
 
@@ -41,7 +42,8 @@ class MoviesViewModel(private val repository: Repository) : ViewModel() {
                     resp.movies = removeAdultMovies(response.body()?.movies)
                     movieResponse.value = resp
                 } else {
-                    resp.error = CommonResponseError("Response not ok; code:" + response.code(), null)
+                    resp.error =
+                        CommonResponseError("Response not ok; code:" + response.code(), null)
                 }
             }
 
