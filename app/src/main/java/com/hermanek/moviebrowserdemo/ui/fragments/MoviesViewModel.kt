@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.hermanek.moviebrowserdemo.model.Changes
 import com.hermanek.moviebrowserdemo.model.Movie
+import com.hermanek.moviebrowserdemo.network.CommonResponseError
 import com.hermanek.moviebrowserdemo.network.MoviesResponse
 import com.hermanek.moviebrowserdemo.repository.Repository
 import retrofit2.Call
@@ -13,8 +14,6 @@ class MoviesViewModel(private val repository: Repository) : ViewModel() {
 
     val movieResponse : MutableLiveData<MoviesResponse> =  MutableLiveData()
 
-    val changesResponse: MutableLiveData<Call<Changes>> = MutableLiveData()
-
         fun getAllChanges() {
         repository.getAllChanges().enqueue(object : retrofit2.Callback<Changes> {
             var resp = MoviesResponse()
@@ -23,12 +22,12 @@ class MoviesViewModel(private val repository: Repository) : ViewModel() {
                     resp.movies = removeAdultMovies(response.body()?.movies)
                     movieResponse.value = resp
                 } else {
-                    // todo return error message
+                    resp.error = CommonResponseError("Response not ok; code:" + response.code(), null)
                 }
             }
 
             override fun onFailure(call: Call<Changes>, t: Throwable) {
-                resp.error = t
+                resp.error = t as CommonResponseError
                 movieResponse.value = resp
             }
         })
@@ -42,12 +41,12 @@ class MoviesViewModel(private val repository: Repository) : ViewModel() {
                     resp.movies = removeAdultMovies(response.body()?.movies)
                     movieResponse.value = resp
                 } else {
-                    // todo return error message
+                    resp.error = CommonResponseError("Response not ok; code:" + response.code(), null)
                 }
             }
 
             override fun onFailure(call: Call<Changes>, t: Throwable) {
-                resp.error = t
+                resp.error = t as CommonResponseError
                 movieResponse.value = resp
             }
         })
