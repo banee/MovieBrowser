@@ -15,8 +15,6 @@ import com.hermanek.moviebrowserdemo.repository.Repository
 import com.hermanek.moviebrowserdemo.util.AppUtils
 import com.hermanek.moviebrowserdemo.util.Constants
 import com.squareup.picasso.Picasso
-import retrofit2.Call
-import retrofit2.Response
 import java.util.stream.Collectors
 
 class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
@@ -43,21 +41,21 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
 
 
         viewModel.getMovieDetail(movieId ?: -1)
-        viewModel.movieResponse.observe(viewLifecycleOwner, { response ->
-            if (response.movie != null) {
-                populateLayout(response.movie!!)
-            } else {
-                Toast.makeText(
-                    activity,
-                    getText(R.string.error_communication_failure),
-                    Toast.LENGTH_LONG
-                ).show()
-                Log.e(
-                    "communication error",
-                    "problem occurred while movies download",
-                    response.error
-                )
-            }
+        viewModel.movieDetail.observe(viewLifecycleOwner, { movieDetail ->
+            populateLayout(movieDetail!!)
+        })
+
+        viewModel.errorResponse.observe(viewLifecycleOwner, { error ->
+            Toast.makeText(
+                activity,
+                getText(R.string.error_communication_failure),
+                Toast.LENGTH_LONG
+            ).show()
+            Log.e(
+                "communication error",
+                "problem occurred while movies download",
+                error
+            )
         })
 
         return view

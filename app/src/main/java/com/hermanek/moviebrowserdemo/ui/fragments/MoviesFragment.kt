@@ -43,21 +43,23 @@ class MoviesFragment : Fragment(R.layout.fragment_movies) {
         val viewModelFactory = MoviesViewModelFactory(repository)
         viewModel = ViewModelProvider(this, viewModelFactory).get(MoviesViewModel::class.java)
 
-        viewModel.movieResponse.observe(viewLifecycleOwner, { response ->
-            if (response.movies != null) {
-                recyclerAdapter.updateData(response.movies!!)
-            } else {
-                Toast.makeText(
-                    activity,
-                    getText(R.string.error_communication_failure),
-                    Toast.LENGTH_LONG
-                ).show()
-                Log.e(
-                    "communication error",
-                    "problem occurred while movies download",
-                    response.error
-                )
+        viewModel.movies.observe(viewLifecycleOwner, { movies ->
+            if (movies != null) {
+                recyclerAdapter.updateData(movies)
             }
+        })
+
+        viewModel.errorResponse.observe(viewLifecycleOwner, { error ->
+            Toast.makeText(
+                activity,
+                getText(R.string.error_communication_failure),
+                Toast.LENGTH_LONG
+            ).show()
+            Log.e(
+                "communication error",
+                "problem occurred while movies download",
+                error
+            )
         })
 
         ArrayAdapter.createFromResource(
