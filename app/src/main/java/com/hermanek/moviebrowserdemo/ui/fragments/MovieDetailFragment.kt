@@ -1,6 +1,7 @@
 package com.hermanek.moviebrowserdemo.ui.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,7 +35,7 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         binding = FragmentMovieDetailBinding.inflate(inflater, container, false)
         val view = binding.root
 
-        var movieId: Int? = arguments?.getInt("movieId")
+        val movieId: Int? = arguments?.getInt("movieId")
 
         val repository = Repository()
         val viewModelFactory = MoviesViewModelFactory(repository)
@@ -42,29 +43,21 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
 
 
         viewModel.getMovieDetail(movieId ?: -1)
-        viewModel.detailResponse.observe(viewLifecycleOwner, { response ->
-            response.enqueue(object : retrofit2.Callback<Movie> {
-                override fun onResponse(call: Call<Movie>, response: Response<Movie>) {
-                    if (response.isSuccessful) {
-                        val movie: Movie = response.body() as Movie
-                        populateLayout(movie)
-                    } else {
-                        Toast.makeText(
-                            activity,
-                            getText(R.string.error_communication_failure),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-
-                override fun onFailure(call: Call<Movie>, t: Throwable) {
-                    Toast.makeText(
-                        activity,
-                        getText(R.string.error_communication_failure),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            })
+        viewModel.movieResponse.observe(viewLifecycleOwner, { response ->
+            if (response.movie != null) {
+                populateLayout(response.movie!!)
+            } else {
+                Toast.makeText(
+                    activity,
+                    getText(R.string.error_communication_failure),
+                    Toast.LENGTH_LONG
+                ).show()
+                Log.e(
+                    "communication error",
+                    "problem occurred while movies download",
+                    response.error
+                )
+            }
         })
 
         return view

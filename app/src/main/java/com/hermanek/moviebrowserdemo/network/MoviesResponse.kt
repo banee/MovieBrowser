@@ -4,6 +4,7 @@ import com.hermanek.moviebrowserdemo.model.Movie
 
 class MoviesResponse {
     var movies: List<Movie>? = ArrayList()
-    var error: CommonResponseError? = null
+    var movie: Movie? = null
 
+    var error: CommonResponseError? = null
 }

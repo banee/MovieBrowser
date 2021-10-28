@@ -75,11 +75,11 @@ class MoviesAdapter :
         }
 
         if (!hasFullInfo) {
-            downloadItemData(movieItem, position, holder)
+            downloadItemDetail(movieItem, position, holder)
         }
     }
 
-    private fun downloadItemData(movieItem: Movie, position: Int, holder: MovieViewHolder) {
+    private fun downloadItemDetail(movieItem: Movie, position: Int, holder: MovieViewHolder) {
         val movieDetail = repository.getMovieDetail(movieItem.id)
         movieDetail.enqueue(object : retrofit2.Callback<Movie> {
             override fun onResponse(call: Call<Movie>, response: Response<Movie>) {
