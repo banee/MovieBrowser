@@ -15,12 +15,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hermanek.moviebrowserdemo.R
 import com.hermanek.moviebrowserdemo.databinding.FragmentMoviesBinding
-import com.hermanek.moviebrowserdemo.model.Changes
-import com.hermanek.moviebrowserdemo.model.Movie
 import com.hermanek.moviebrowserdemo.repository.Repository
 import com.hermanek.moviebrowserdemo.ui.adapters.MoviesAdapter
-import retrofit2.Call
-import retrofit2.Response
 
 class MoviesFragment : Fragment(R.layout.fragment_movies) {
 
