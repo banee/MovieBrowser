@@ -80,7 +80,7 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         }
         if (!movie.genres.isNullOrEmpty()) {
             binding.genre.text =
-                movie.genres.stream().map { e -> e.name }?.collect(Collectors.joining(","))
+                movie.genres.stream().map { e -> e.name }?.collect(Collectors.joining(", "))
         }
         if (!movie.overview.isNullOrEmpty()) {
             binding.overview.text = movie.overview
