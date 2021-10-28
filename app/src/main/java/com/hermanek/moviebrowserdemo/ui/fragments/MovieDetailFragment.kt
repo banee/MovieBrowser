@@ -75,12 +75,10 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
             binding.title.text = movie.title
         }
         if (!movie.spoken_languages.isNullOrEmpty()) {
-            binding.language.text = movie.spoken_languages.stream().map { e -> e.english_name }
-                ?.collect(Collectors.joining(","))
+            binding.language.text = movie.spoken_languages.joinToString { it.english_name }
         }
         if (!movie.genres.isNullOrEmpty()) {
-            binding.genre.text =
-                movie.genres.stream().map { e -> e.name }?.collect(Collectors.joining(", "))
+            binding.genre.text = movie.genres.joinToString { it.name }
         }
         if (!movie.overview.isNullOrEmpty()) {
             binding.overview.text = movie.overview
