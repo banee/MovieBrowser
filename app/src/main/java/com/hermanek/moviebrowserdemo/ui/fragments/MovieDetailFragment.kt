@@ -1,84 +1,106 @@
 package com.hermanek.moviebrowserdemo.ui.fragments
 
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.navArgs
 import com.hermanek.moviebrowserdemo.R
 import com.hermanek.moviebrowserdemo.databinding.FragmentMovieDetailBinding
 import com.hermanek.moviebrowserdemo.model.Movie
-import com.hermanek.moviebrowserdemo.repository.Repository
 import com.hermanek.moviebrowserdemo.util.AppUtils
 import com.hermanek.moviebrowserdemo.util.Constants
+import com.hermanek.moviebrowserdemo.util.SupportedLanguages
 import com.squareup.picasso.Picasso
+import dagger.hilt.android.AndroidEntryPoint
+import retrofit2.Call
+import retrofit2.Response
 import java.util.stream.Collectors
 
-class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
+@AndroidEntryPoint
+class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail), SupportedLanguages {
 
-    companion object {
-        const val fragmentTag: String = "MovieDetailFragment"
+    private var _binding: FragmentMovieDetailBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel by viewModels<MovieDetailViewModel>()
+    private val args: MovieDetailFragmentArgs by navArgs()
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentMovieDetailBinding.bind(view)
+        val movie: Movie = args.movie
+
+        viewModel.getMovieDetailFromDatabase(movie.id, AppUtils.getSupportedLanguage())
+        viewModel.cachedMovie.observe(viewLifecycleOwner) { cachedMovie ->
+            if (cachedMovie != null) {
+                viewModel.changeMovie(cachedMovie)
+            } else {
+                downloadMovieDetails(movie)
+            }
+        }
+
+        viewModel.movie.observe(viewLifecycleOwner) {
+            populateLayout(it)
+        }
     }
 
-    private lateinit var binding: FragmentMovieDetailBinding
-    private lateinit var viewModel: MovieDetailViewModel
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        binding = FragmentMovieDetailBinding.inflate(inflater, container, false)
-        val view = binding.root
+    private fun downloadMovieDetails(movieItem: Movie?) {
+        viewModel.getMovieDetail(movieItem?.id ?: -1, AppUtils.getSupportedLanguage())
+        viewModel.detailResponse.observe(viewLifecycleOwner) { response ->
+            response.enqueue(object : retrofit2.Callback<Movie> {
+                override fun onResponse(call: Call<Movie>, response: Response<Movie>) {
+                    if (response.isSuccessful) {
+                        val movie = response.body() as Movie
+                        movie.translation = AppUtils.getSupportedLanguage()
+                        viewModel.changeMovie(movie)
+                        viewModel.addMovieDetail(movie)
+                    } else {
+                        Toast.makeText(
+                            activity,
+                            getText(R.string.error_communication_failure),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
 
-        val movieId: Int? = arguments?.getInt("movieId")
-
-        val repository = Repository()
-        val viewModelFactory = MoviesViewModelFactory(repository)
-        viewModel = ViewModelProvider(this, viewModelFactory).get(MovieDetailViewModel::class.java)
-
-
-        viewModel.getMovieDetail(movieId ?: -1)
-        viewModel.movieDetail.observe(viewLifecycleOwner, { movieDetail ->
-            populateLayout(movieDetail!!)
-        })
-
-        viewModel.errorResponse.observe(viewLifecycleOwner, { error ->
-            Toast.makeText(
-                activity,
-                getText(R.string.error_communication_failure),
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e(
-                "communication error",
-                "problem occurred while movies download",
-                error
-            )
-        })
-
-        return view
+                override fun onFailure(call: Call<Movie>, t: Throwable) {
+                    Toast.makeText(
+                        activity,
+                        getText(R.string.error_communication_failure),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            })
+        }
     }
 
     private fun populateLayout(movie: Movie) {
         if (movie.poster_path?.isNotEmpty() != null) {
             Picasso.get()
-                .load(Constants.IMAGE_BASE_POSTER + movie.poster_path)
+                .load(Constants.IMAGE_BASE_POSTER + Constants.IMAGE_BASE_POSTER_large + movie.poster_path)
                 .into(binding.cover)
         } else if (movie.backdrop_path?.isNotEmpty() != null) {
             Picasso.get()
-                .load(Constants.IMAGE_BASE_BACKDROP + movie.backdrop_path)
+                .load(Constants.IMAGE_BASE_BACKDROP + Constants.IMAGE_BASE_BACKDROP_large + movie.backdrop_path)
                 .into(binding.cover)
         }
         if (!movie.title.isNullOrEmpty()) {
             binding.title.text = movie.title
         }
         if (!movie.spoken_languages.isNullOrEmpty()) {
-            binding.language.text = movie.spoken_languages.joinToString { it.english_name }
+            binding.language.text = movie.spoken_languages.stream().map { e -> e.english_name }
+                ?.collect(Collectors.joining(", "))
         }
         if (!movie.genres.isNullOrEmpty()) {
-            binding.genre.text = movie.genres.joinToString { it.name }
+            binding.genre.text =
+                movie.genres.stream().map { e -> e.name }?.collect(Collectors.joining(", "))
         }
         if (!movie.overview.isNullOrEmpty()) {
             binding.overview.text = movie.overview

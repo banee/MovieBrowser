@@ -2,135 +2,95 @@ package com.hermanek.moviebrowserdemo.ui.adapters
 
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
+import androidx.paging.PagingDataAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.textview.MaterialTextView
-import com.hermanek.moviebrowserdemo.R
+import com.hermanek.moviebrowserdemo.databinding.MovieListItemBinding
 import com.hermanek.moviebrowserdemo.model.Movie
-import com.hermanek.moviebrowserdemo.repository.Repository
-import com.hermanek.moviebrowserdemo.util.Constants.Companion.IMAGE_BASE_BACKDROP
-import com.hermanek.moviebrowserdemo.util.Constants.Companion.IMAGE_BASE_POSTER
+import com.hermanek.moviebrowserdemo.util.Constants
 import com.squareup.picasso.Picasso
-import retrofit2.Call
-import retrofit2.Response
 
-class MoviesAdapter :
-    RecyclerView.Adapter<MoviesAdapter.MovieViewHolder>() {
 
-    private lateinit var mListener: onItemClickListener
-    private val repository = Repository()
+/**
+ * Created by jhermanek on 28.02.2022.
+ */
 
-    interface onItemClickListener {
-        fun onItemClick(position: Int)
-    }
+class MoviesAdapter(private val listener: OnItemClickListener) :
+    PagingDataAdapter<Movie, MoviesAdapter.MovieViewHolder>(MOVIE_COMPARATOR) {
 
-    fun setOnItemClickListener(listener: onItemClickListener) {
-        mListener = listener
-    }
-
-    private var movieList: List<Movie> = ArrayList()
-
-    fun updateData(movieList: List<Movie>) {
-        this.movieList = movieList
-        notifyDataSetChanged()
-    }
-
-    fun getItemOnPosition(position: Int): Movie {
-        return movieList[position]
-    }
-
-    inner class MovieViewHolder constructor(itemView: View, listener: onItemClickListener) :
-        RecyclerView.ViewHolder(itemView) {
-        val title: MaterialTextView = itemView.findViewById(R.id.movieTitle)
-        val image: ImageView = itemView.findViewById(R.id.movieImage)
-
-        init {
-            itemView.setOnClickListener {
-                listener.onItemClick(adapterPosition)
-            }
-        }
-    }
-
-    override fun getItemCount(): Int {
-        return movieList.size
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MovieViewHolder {
+        val binding =
+            MovieListItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return MovieViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: MovieViewHolder, position: Int) {
-        val movieItem: Movie = movieList[position]
-        holder.title.text = movieItem.id.toString()
-
-        var hasFullInfo = true
-        when {
-            movieItem.title?.isNotEmpty() != null -> {
-                holder.title.text = movieItem.title
-            }
-            movieItem.original_title?.isNotEmpty() != null -> {
-                holder.title.text = movieItem.original_title
-            }
-            else -> {
-                hasFullInfo = false
-            }
-        }
-
-        if (!hasFullInfo) {
-            downloadItemDetail(movieItem, position, holder)
+        val currentItem = getItem(position)
+        if (currentItem != null) {
+            holder.bind(currentItem)
         }
     }
 
-    private fun downloadItemDetail(movieItem: Movie, position: Int, holder: MovieViewHolder) {
-        val movieDetail = repository.getMovieDetail(movieItem.id)
-        movieDetail.enqueue(object : retrofit2.Callback<Movie> {
-            override fun onResponse(call: Call<Movie>, response: Response<Movie>) {
-                if (response.isSuccessful) {
-                    val movie: Movie = response.body() as Movie
-                    reloadItemData(movie, position, holder)
+    inner class MovieViewHolder constructor(
+        private val binding: MovieListItemBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        init {
+            binding.root.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val item = getItem(position)
+                    if (item != null) {
+                        listener.onItemClick(item)
+                    }
                 }
             }
+        }
 
-            override fun onFailure(call: Call<Movie>, t: Throwable) {
+        fun bind(movieItem: Movie) {
+            binding.apply {
+                when {
+                    movieItem.title?.isNotEmpty() != null -> {
+                        movieTitle.text = movieItem.title
+                    }
+                    movieItem.original_title?.isNotEmpty() != null -> {
+                        movieTitle.text = movieItem.original_title
+                    }
+                    else -> {
+                        movieTitle.text = movieItem.id.toString()
+                    }
+                }
+
+                if (movieItem.poster_path?.isNotEmpty() != null) {
+                    Picasso.get()
+                        .load(Constants.IMAGE_BASE_POSTER + Constants.IMAGE_BASE_POSTER_small + movieItem.poster_path)
+                        .into(movieImage)
+                } else if (movieItem.backdrop_path?.isNotEmpty() != null) {
+                    Picasso.get()
+                        .load(Constants.IMAGE_BASE_BACKDROP + Constants.IMAGE_BASE_BACKDROP_small + movieItem.backdrop_path)
+                        .into(movieImage)
+                }
+                Log.i(
+                    "item load",
+                    "loaded " + movieItem.id,
+                    null
+                )
             }
-        })
+        }
     }
 
-    private fun reloadItemData(movie: Movie, position: Int, holder: MovieViewHolder) {
-        val movieItem = movieList[position]
-        movieList[position].title = movie.title
-        movieList[position].original_title = movie.original_title
-        movieList[position].backdrop_path = movie.backdrop_path
-        movieList[position].poster_path = movie.poster_path
-
-        if (movieItem.title?.isNotEmpty() != null) {
-            holder.title.text = movieItem.title
-        } else if (movieItem.original_title?.isNotEmpty() != null) {
-            holder.title.text = movieItem.original_title
-        }
-
-        if (movieItem.poster_path?.isNotEmpty() != null) {
-            Picasso.get()
-                .load(IMAGE_BASE_POSTER + movieItem.poster_path)
-                .into(holder.image)
-        } else if (movieItem.backdrop_path?.isNotEmpty() != null) {
-            Picasso.get()
-                .load(IMAGE_BASE_BACKDROP + movieItem.backdrop_path)
-                .into(holder.image)
-        }
-
-        Log.i(
-            "item load",
-            "loaded " + movie.id,
-            null
-        )
+    interface OnItemClickListener {
+        fun onItemClick(movie: Movie)
     }
 
+    companion object {
+        private val MOVIE_COMPARATOR = object : DiffUtil.ItemCallback<Movie>() {
+            override fun areItemsTheSame(oldItem: Movie, newItem: Movie) =
+                oldItem.id == newItem.id
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int
-    ): MoviesAdapter.MovieViewHolder {
-        val view: View =
-            LayoutInflater.from(parent.context).inflate(R.layout.movie_list_item, parent, false)
-        return MovieViewHolder(view, mListener)
+            override fun areContentsTheSame(oldItem: Movie, newItem: Movie): Boolean =
+                oldItem == newItem
+
+        }
     }
 }

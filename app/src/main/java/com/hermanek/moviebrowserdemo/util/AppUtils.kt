@@ -1,5 +1,7 @@
 package com.hermanek.moviebrowserdemo.util
 
+import android.content.res.Resources
+import androidx.core.os.ConfigurationCompat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -9,29 +11,28 @@ import java.util.*
  */
 
 class AppUtils {
-    companion object {
+    companion object : SupportedLanguages {
         private const val API_FORMAT: String = "yyyy-MM-dd"
-
-        fun convertToDateFormat(date: Date): String {
-            return convertToDateFormatWithOffset(date, null)
-        }
-
-        fun convertToDateFormatWithOffset(date: Date, offset: Int?): String {
-            val cal = Calendar.getInstance()
-            cal.time = date
-            if (offset != null) {
-                cal.add(Calendar.DATE, offset)
-            }
-
-            val df = SimpleDateFormat(API_FORMAT, Locale.getDefault())
-            return df.format(cal.time)
-        }
 
         fun convertToFormat(input: String, format: String): String {
             val oldApiFormat = SimpleDateFormat(API_FORMAT, Locale.getDefault())
             val newFormat = SimpleDateFormat(format, Locale.getDefault())
             val date = oldApiFormat.parse(input)
             return newFormat.format(date)
+        }
+
+        fun getSupportedLanguage(): String {
+            return when (ConfigurationCompat.getLocales(Resources.getSystem().configuration)[0].toLanguageTag()) {
+                czech -> {
+                    czech
+                }
+                english -> {
+                    english
+                }
+                else -> {
+                    default
+                }
+            }
         }
     }
 

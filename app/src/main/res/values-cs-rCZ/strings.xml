@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MovieBrowser</string>
+    <string name="search_field2_default">dny</string>
+    <string name="loading_label">Načítání</string>
+    <string name="language_label">Jazyk</string>
+    <string name="genre_label">Žánr</string>
+    <string name="overview_label">Hodnocení</string>
+    <string name="release_date_label">Datum vydání</string>
+    <string name="unknown_label">neznámé</string>
+    <string name="error_communication_failure">Problém při komunikaci. Zkuste prosím později.</string>
+    <string name="button_search">vyhledat</string>
+    <string name="title_label">Titul</string>
+    <string name="error_invalid_movie_data">Neplatná data. Není možné otevřít detail.</string>
+</resources>

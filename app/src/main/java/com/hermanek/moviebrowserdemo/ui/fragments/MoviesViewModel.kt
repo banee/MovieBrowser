@@ -2,53 +2,28 @@ package com.hermanek.moviebrowserdemo.ui.fragments
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.hermanek.moviebrowserdemo.model.Changes
-import com.hermanek.moviebrowserdemo.model.Movie
-import com.hermanek.moviebrowserdemo.network.CommonResponseError
+import androidx.lifecycle.switchMap
+import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
 import com.hermanek.moviebrowserdemo.repository.Repository
-import retrofit2.Call
-import retrofit2.Response
+import com.hermanek.moviebrowserdemo.util.AppUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class MoviesViewModel(private val repository: Repository) : ViewModel() {
+@HiltViewModel
+class MoviesViewModel @Inject constructor(private val repository: Repository) : ViewModel() {
 
-    var movies: MutableLiveData<List<Movie>> = MutableLiveData()
-    var errorResponse: MutableLiveData<CommonResponseError> = MutableLiveData()
-
-    fun getAllChanges() {
-        repository.getAllChanges().enqueue(object : retrofit2.Callback<Changes> {
-            override fun onResponse(call: Call<Changes>, response: Response<Changes>) {
-                if (response.isSuccessful) {
-                    movies.value = removeAdultMovies(response.body()?.movies)
-                } else {
-                    errorResponse.value =
-                        CommonResponseError("Response not ok; code:" + response.code(), null)
-                }
-            }
-
-            override fun onFailure(call: Call<Changes>, t: Throwable) {
-                errorResponse.value = t as CommonResponseError
-            }
+    private val queryParams =
+        MutableLiveData(HashMap<String, Any>().apply {
+            this["language"] = AppUtils.getSupportedLanguage()
         })
+
+    var movies = queryParams.switchMap { queryParams ->
+        repository.getMovies(queryParams).cachedIn(viewModelScope)
     }
 
-    fun getChangesFromLastDays(days: Int) {
-        repository.getChangesFromLastDays(days).enqueue(object : retrofit2.Callback<Changes> {
-            override fun onResponse(call: Call<Changes>, response: Response<Changes>) {
-                if (response.isSuccessful) {
-                    movies.value = removeAdultMovies(response.body()?.movies)
-                } else {
-                    errorResponse.value =
-                        CommonResponseError("Response not ok; code:" + response.code(), null)
-                }
-            }
-
-            override fun onFailure(call: Call<Changes>, t: Throwable) {
-                errorResponse.value = t as CommonResponseError
-            }
-        })
-    }
-
-    private fun removeAdultMovies(movies: List<Movie>?): List<Movie>? {
-        return movies?.filter { e -> !e.adult }?.toList()
+    // TODO prepared for search filters
+    fun getMovies(queryParams: HashMap<String, Any>?) {
+        this.queryParams.value = queryParams;
     }
 }

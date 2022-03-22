@@ -2,36 +2,46 @@ package com.hermanek.moviebrowserdemo.ui.fragments
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.hermanek.moviebrowserdemo.model.Movie
-import com.hermanek.moviebrowserdemo.network.CommonResponseError
 import com.hermanek.moviebrowserdemo.repository.Repository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.Call
-import retrofit2.Response
+import javax.inject.Inject
 
 
 /**
  * Created by jhermanek on 14.09.2021.
  */
 
-class MovieDetailViewModel(private val repository: Repository) : ViewModel() {
-    val movieDetail: MutableLiveData<Movie> = MutableLiveData()
-    var errorResponse: MutableLiveData<CommonResponseError> = MutableLiveData()
+@HiltViewModel
+class MovieDetailViewModel @Inject constructor(private val repository: Repository) : ViewModel() {
 
-    fun getMovieDetail(id: Int) {
-        if (id != -1) {
-            repository.getMovieDetail(id).enqueue(object : retrofit2.Callback<Movie> {
-                override fun onResponse(call: Call<Movie>, response: Response<Movie>) {
-                    if (response.isSuccessful) {
-                        movieDetail.value = response.body() as Movie
-                    } else {
-                        errorResponse.value = CommonResponseError("Response not ok; code:" + response.code(), null)
-                    }
-                }
+    val detailResponse: MutableLiveData<Call<Movie>> = MutableLiveData()
+    val movie: MutableLiveData<Movie> = MutableLiveData()
+    var cachedMovie: MutableLiveData<Movie> = MutableLiveData()
 
-                override fun onFailure(call: Call<Movie>, t: Throwable) {
-                    errorResponse.value = t as CommonResponseError
-                }
-            })
+    fun changeMovie(movie: Movie) {
+        this.movie.value = movie
+    }
+
+    fun getMovieDetail(id: Int, language: String) {
+        val detailResponse = repository.getMovieDetail(id, language)
+        this.detailResponse.value = detailResponse
+    }
+
+    fun getMovieDetailFromDatabase(id: Int, language: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            cachedMovie.postValue(repository.getMovieDetailFromDatabase(id, language))
+        }
+    }
+
+
+    fun addMovieDetail(movie: Movie) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addMovieDetailToDatabase(movie)
         }
     }
 }

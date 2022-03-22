@@ -1,121 +1,89 @@
 package com.hermanek.moviebrowserdemo.ui.fragments
 
-import android.content.Context
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hermanek.moviebrowserdemo.R
 import com.hermanek.moviebrowserdemo.databinding.FragmentMoviesBinding
-import com.hermanek.moviebrowserdemo.repository.Repository
+import com.hermanek.moviebrowserdemo.model.Movie
 import com.hermanek.moviebrowserdemo.ui.adapters.MoviesAdapter
+import com.hermanek.moviebrowserdemo.ui.adapters.MoviesAdapter.OnItemClickListener
+import com.hermanek.moviebrowserdemo.util.AppUtils
+import dagger.hilt.android.AndroidEntryPoint
 
-class MoviesFragment : Fragment(R.layout.fragment_movies) {
+@AndroidEntryPoint
+class MoviesFragment : Fragment(R.layout.fragment_movies), OnItemClickListener {
 
-    companion object {
-        const val fragmentTag: String = "MovieFragment"
-    }
-
-    private lateinit var binding: FragmentMoviesBinding
+    private var _binding: FragmentMoviesBinding? = null
+    private val binding get() = _binding!!
     private var layoutManager: RecyclerView.LayoutManager? = null
-    private lateinit var recyclerAdapter: MoviesAdapter
-    private lateinit var viewModel: MoviesViewModel
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        binding = FragmentMoviesBinding.inflate(inflater, container, false)
-        val view = binding.root
+    private val viewModel by viewModels<MoviesViewModel>()
 
-        initRecyclerView()
 
-        val repository = Repository()
-        val viewModelFactory = MoviesViewModelFactory(repository)
-        viewModel = ViewModelProvider(this, viewModelFactory).get(MoviesViewModel::class.java)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentMoviesBinding.bind(view)
 
-        viewModel.movies.observe(viewLifecycleOwner, { movies ->
-            if (movies != null) {
-                recyclerAdapter.updateData(movies)
+        val adapter = MoviesAdapter(this)
+        binding.apply {
+            movieListRecyclerView.hasFixedSize()
+            layoutManager = if (resources.getBoolean(R.bool.isTablet)) {
+                GridLayoutManager(context, 4, GridLayoutManager.HORIZONTAL, false)
+            } else {
+                GridLayoutManager(context, 2)
             }
-        })
-
-        viewModel.errorResponse.observe(viewLifecycleOwner, { error ->
-            Toast.makeText(
-                activity,
-                getText(R.string.error_communication_failure),
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e(
-                "communication error",
-                "problem occurred while movies download",
-                error
-            )
-        })
-
-        ArrayAdapter.createFromResource(
-            activity as Context,
-            R.array.spinner_options,
-            android.R.layout.simple_spinner_item
-        ).also { adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            binding.spinnerNumOfDays.adapter = adapter
+            movieListRecyclerView.layoutManager = layoutManager
+            movieListRecyclerView.adapter = adapter
         }
 
-        binding.spinnerNumOfDays.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                    viewModel.getAllChanges()
-                }
-
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    if (position == 0) {
-                        viewModel.getAllChanges()
-                    } else {
-                        viewModel.getChangesFromLastDays(position)
-                    }
-
-                }
-
-            }
-
-        return view
-    }
-
-
-    private fun initRecyclerView() {
-        layoutManager = if (resources.getBoolean(R.bool.isTablet)) {
-            GridLayoutManager(context, 3, GridLayoutManager.HORIZONTAL, false)
-        } else {
-            GridLayoutManager(context, 3)
+        viewModel.movies.observe(viewLifecycleOwner) {
+            adapter.submitData(viewLifecycleOwner.lifecycle, it)
         }
-        binding.movieListRecyclerView.layoutManager = layoutManager
-        recyclerAdapter = MoviesAdapter()
-        recyclerAdapter.setOnItemClickListener(object : MoviesAdapter.onItemClickListener {
-            override fun onItemClick(position: Int) {
-                val itemOnPosition = recyclerAdapter.getItemOnPosition(position)
-                openMovieDetail(itemOnPosition.id)
-            }
-        })
-        binding.movieListRecyclerView.adapter = recyclerAdapter
+
+        // TODO put on onchange of some filter
+        // viewModel.getMovies(createParams())
     }
 
-    fun openMovieDetail(movieId: Int) {
-        (activity as Communicator).openMovieDetail(movieId)
+    // TODO prepared for filters
+    private fun createParams(): HashMap<String, Any>? {
+        val params: HashMap<String, Any> = HashMap()
+        params.put("language", AppUtils.getSupportedLanguage())
+        params.put("sort_by", "popularity.desc")
+        params.put("include_adult", false)
+        params.put("year", 2021)
+        params.put("vote_count.gte", 1000)
+        return params
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private fun openMovie(movie: Movie) {
+        val action = MoviesFragmentDirections.actionMoviesFragmentToMovieDetailFragment(movie)
+        findNavController().navigate(action)
+    }
+
+    override fun onItemClick(movie: Movie) {
+        when (movie.id) {
+            -1 -> {
+                Toast.makeText(
+                    activity,
+                    getText(R.string.error_invalid_movie_data),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            else -> {
+                openMovie(movie)
+            }
+        }
     }
 
 }
